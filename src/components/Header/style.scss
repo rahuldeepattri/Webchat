@@ -20,6 +20,12 @@
     width: 15px;
     height: 15px;
   }
+  &--speak {
+    cursor: pointer;
+    margin-right: -0.2rem;
+    width: 26px;
+    height: 26px;
+  }
 }
 
 @media only screen and (min-width: 420px) and (min-height: 575px) {

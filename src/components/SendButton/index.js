@@ -2,7 +2,6 @@ import React from 'react'
 import PropTypes from 'prop-types'
 
 import './style.scss'
-
 const SendButton = ({ sendMessage, preferences, value }) => (
   <div
     className='RecastSendButtonContainer CaiSendButtonContainer'

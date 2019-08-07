@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import append from 'ramda/es/append'
 
 import SendButton from 'components/SendButton'
+import MicButton from 'components/MicButton'
 
 import Menu from 'components/Menu'
 import MenuSVG from 'components/svgs/menu'
@@ -19,16 +20,18 @@ class Input extends Component {
     indexHistory: 0,
     menuOpened: false,
     menuIndexes: [],
+    recognition:null,
+    isListening:false,
   }
 
-  componentDidMount () {
+  componentDidMount() {
     this._input.focus()
     this._input.value = ''
 
     this.onInputHeight()
   }
 
-  shouldComponentUpdate (nextProps, nextState) {
+  shouldComponentUpdate(nextProps, nextState) {
     return (
       nextState.value !== this.state.value
       || nextState.menuOpened !== this.state.menuOpened
@@ -36,7 +39,7 @@ class Input extends Component {
     )
   }
 
-  componentDidUpdate () {
+  componentDidUpdate() {
     if (!this.state.value) {
       // Dirty fix textarea placeholder to reset style correctly
       setTimeout(() => {
@@ -94,6 +97,97 @@ class Input extends Component {
           indexHistory: previousValues.length - 1,
         }
       })
+    }
+  }
+
+  listenAndConvertToText = () => {
+
+    if(this.state.recognition != null){
+      try{
+      this.state.recognition.start()
+      }catch(e){
+        this.state.recognition.stop()
+      }
+      return;
+    }
+    
+    var that = this;
+    if (!('webkitSpeechRecognition' in window)) {
+      alert("Use chrome or Upgrade your chrome installation");
+      return;
+    } else {
+      const SpeechRecognition = window.SpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition || window.webkitSpeechRecognition;
+      var recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+
+      recognition.onstart = function () {
+        that.setState((state) => {
+            // Important: read `state` instead of `this.state` when updating.
+            return {isListening: true}
+          });  
+        that.forceUpdate(); 
+       }
+
+      recognition.onresult = function (event) {
+        
+        var interim_transcript = '';
+        for (var i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            final_transcript += event.results[i][0].transcript;
+          } else {
+            interim_transcript += event.results[i][0].transcript;
+          }
+        }
+
+        that.setState(prevState => {
+          const newPreviousValues = [...prevState.previousValues]
+          newPreviousValues[prevState.indexHistory] = interim_transcript
+          return {
+            value: interim_transcript,
+            previousValues: newPreviousValues,
+          }
+        }, that.autoGrow)
+       //todo update the main bar
+      }
+      recognition.onerror = function (event) { 
+        console.error(event);
+       }
+      recognition.onend = function () { 
+        that.setState((state) => {
+          // Important: read `state` instead of `this.state` when updating.
+          return {isListening: false}
+        });  
+        that.forceUpdate(); 
+        const content = final_transcript.trim();
+        if (content) {
+          that.props.onSubmit({
+            type: 'text',
+            content,
+          })
+          that.setState(prevState => {
+            const historyValues = append(content, prevState.historyValues)
+            const previousValues = append('', historyValues)
+    
+            return {
+              value: '',
+              previousValues,
+              historyValues,
+              indexHistory: previousValues.length - 1,
+            }
+          }) 
+        }
+        final_transcript = ''
+    }
+
+    let final_transcript = '';
+    // TODO get lang from context
+    recognition.lang = 'en-IN';
+    this.setState((state) => {
+      // Important: read `state` instead of `this.state` when updating.
+      return {recognition: recognition}
+    });
+    recognition.start()
     }
   }
 
@@ -167,9 +261,9 @@ class Input extends Component {
     return this.setState({ menuOpened: true })
   }
 
-  render () {
+  render() {
     const { enableHistoryInput, characterLimit, menu, preferences, inputPlaceholder } = this.props
-    const { value, menuOpened } = this.state
+    const { value, menuOpened, isListening } = this.state
 
     const showLimitCharacter = characterLimit
       ? characterLimit - value.length <= NUMBER_BEFORE_LIMIT
@@ -217,7 +311,12 @@ class Input extends Component {
           }}
           rows={1}
         />
-
+        <MicButton
+          preferences={preferences}
+          listenAndConvertToText={this.listenAndConvertToText}
+          isListening={isListening}
+        />
+        {/* TODO add sound button  */}
         <SendButton
           preferences={preferences}
           sendMessage={this.sendMessage}

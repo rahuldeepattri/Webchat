@@ -46,6 +46,7 @@ class Chat extends Component {
     messages: this.props.messages,
     showSlogan: true,
     inputHeight: 50, // height of input (default: 50px)
+    isSpeaking: false,
   }
 
   componentDidMount () {
@@ -59,16 +60,28 @@ class Chat extends Component {
 
   componentWillReceiveProps (nextProps) {
     const { messages, show } = nextProps
-
+    
     if (messages !== this.state.messages) {
+      try{
+        let msgs = this.state.messages;
+        let oldMsg = msgs[msgs.length - 1];
+        let newMsg = messages[messages.length - 1];
+        if(this.state.isSpeaking && newMsg.participant.isBot && oldMsg.id !== newMsg.id){
+          // console.log(newMsg)
+          // console.log(newMsg.attachment.content.title || newMsg.attachment.content)
+          var msg = new SpeechSynthesisUtterance(newMsg.attachment.content.title || newMsg.attachment.content);
+          msg.voice = window.speechSynthesis.getVoices().filter(function(voice) { return voice.name === "Microsoft Zira Desktop - English (United States)"; })[0];
+          window.speechSynthesis.speak(msg);
+        }
+      }catch(e){}
       this.setState({ messages }, () => {
         const { getLastMessage } = this.props
         if (getLastMessage) {
           getLastMessage(messages[messages.length - 1])
         }
       })
-    }
-
+    
+  }
     if (show && show !== this.props.show && !this.props.sendMessagePromise && !this._isPolling) {
       this.doMessagesPolling()
     }
@@ -298,7 +311,10 @@ class Chat extends Component {
     } while (shouldPoll || index < 4)
     this._isPolling = false
   }
-
+  toggleSpeaking = ()=>{
+    this.state.isSpeaking = !this.state.isSpeaking 
+    this.forceUpdate()
+  }
   render () {
     const {
       closeWebchat,
@@ -314,6 +330,7 @@ class Chat extends Component {
       logoStyle,
       show,
       enableHistoryInput,
+      toggleSpeaking,
     } = this.props
     const { showSlogan, messages, inputHeight } = this.state
 
@@ -332,6 +349,8 @@ class Chat extends Component {
             preferences={preferences}
             key='header'
             logoStyle={logoStyle}
+            isSpeaking={this.state.isSpeaking}
+            toggleSpeaking={this.toggleSpeaking}
           />
         )}
         <div
