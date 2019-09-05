@@ -1,0 +1,6 @@
+applications:
+- name: customwebchat
+  memory: 20M
+  path: dist
+  instances: 1
+  buildpack: https://github.com/cloudfoundry/staticfile-buildpack
