@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 
 import './style.scss'
 
+const clearChat = ()=> {window.chatApp.clearMessages()}
 const Header = ({ closeWebchat, preferences, logoStyle, isSpeaking, toggleSpeaking}) => (
   <div
     className='RecastAppHeader CaiAppHeader'
@@ -11,7 +12,7 @@ const Header = ({ closeWebchat, preferences, logoStyle, isSpeaking, toggleSpeaki
       backgroundColor: preferences.accentColor,
     }}
   >
-    <img className='RecastAppHeader--logo CaiAppHeader--logo' src={preferences.headerLogo} style={logoStyle} />
+    <img className='RecastAppHeader--logo CaiAppHeader--logo' src={preferences.headerLogo} style={logoStyle} onClick={clearChat}/>
 
     <div className='RecastAppHeader--title CaiAppHeader--title'>{preferences.headerTitle}</div>
     <div className='RecastAppHeader--btn CaiAppHeader--speak' onClick={toggleSpeaking}>

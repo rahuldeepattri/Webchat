@@ -53,7 +53,42 @@ const getApplicationParse =  messages  => {
         resolve()
       }
     })
-  }
+  };
+
+ const getChatParse =  messages  => {
+    return new Promise(resolve => {
+      if (!window.webchatMethods || !window.webchatMethods.chatParse) {
+        console.log("No method chatParse defined!")
+        return resolve()
+      }
+      // so that we process the message in all cases
+      setTimeout(resolve, MAX_GET_MEMORY_TIME)
+      try {
+        const applicationParseResponse = window.webchatMethods.chatParse(messages)
+        console.log("chatParse response" : applicationParseResponse)
+
+        if (!applicationParseResponse) {
+          return resolve()
+        }
+        if (applicationParseResponse.then && typeof applicationParseResponse.then === 'function') {
+          // the function returned a Promise
+          applicationParseResponse
+            .then(applicationParse => resolve())
+            .catch(err => {
+              console.error(FAILED_TO_GET_MEMORY)
+              console.error(err)
+              resolve()
+            })
+        } else {
+          resolve()
+        }
+      } catch (err) {
+        console.error(FAILED_TO_GET_MEMORY)
+        console.error(err)
+        resolve()
+      }
+    })
+  };
 @connect(
   state => ({
     token: state.conversation.token,
@@ -92,17 +127,26 @@ class Chat extends Component {
     const { messages, show } = nextProps
     
     if (messages !== this.state.messages) {
-      getApplicationParse(messages);
+      if (!window.webchatData || window.webchatData.oriUrl !== window.location.href ) {
+            getChatParse(messages);
+						window.webchatData = {oriUrl : window.location.href}
+			}
+      
       try{
         let msgs = this.state.messages;
         let oldMsg = msgs[msgs.length - 1];
         let newMsg = messages[messages.length - 1];
+        if(newMsg.participant.isBot && oldMsg.id !== newMsg.id){
+          getApplicationParse(newMsg);
+        }
         if(this.state.isSpeaking && newMsg.participant.isBot && oldMsg.id !== newMsg.id){
           // console.log(newMsg)
           // console.log(newMsg.attachment.content.title || newMsg.attachment.content)
+          if(typeof(newMsg.attachment.content.title || newMsg.attachment.content) == "string"){
           var msg = new SpeechSynthesisUtterance(newMsg.attachment.content.title || newMsg.attachment.content);
-          msg.voice = window.speechSynthesis.getVoices().filter(function(voice) { return voice.name === "Microsoft Zira Desktop - English (United States)"; })[0];
+          msg.voice = window.speechSynthesis.getVoices().filter(function(voice) { return voice.name === "Google UK English Male"; })[0];
           window.speechSynthesis.speak(msg);
+          }
         }
       }catch(e){}
       this.setState({ messages }, () => {
@@ -209,7 +253,6 @@ class Chat extends Component {
       defaultMessageDelay,
     } = this.props
     const payload = { message: { attachment }, chatId }
-
     const backendMessage = {
       ...payload.message,
       isSending: true,

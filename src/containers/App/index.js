@@ -30,6 +30,7 @@ class App extends Component {
   }
 
   componentDidMount () {
+    window.chatApp = this
     const { channelId, token, preferences, noCredentials, onRef } = this.props
     const credentials = getCredentialsFromCookie(channelId)
     const payload = { channelId, token }
